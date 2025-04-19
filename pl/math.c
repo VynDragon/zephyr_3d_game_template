@@ -42,7 +42,7 @@ int PL_cos[PL_TRIGMAX];
 
 static struct {
 	int tx, ty, tz;
-	unsigned int rx, ry;
+	unsigned int rx, ry, rz;
 } xf_vw; /* view transform */
 
 static int mat_idt[16] = PL_IDT_MAT;
@@ -51,7 +51,7 @@ static int mst_stack[PL_MAX_MST_DEPTH * 16];
 static int mst_top = 0;
 
 extern void
-PL_set_camera(int x, int y, int z, int rx, int ry)
+PL_set_camera(int x, int y, int z, int rx, int ry, int rz)
 {
 	xf_vw.tx = -x;
 	xf_vw.ty = -y;
@@ -59,6 +59,7 @@ PL_set_camera(int x, int y, int z, int rx, int ry)
 
 	xf_vw.rx = (unsigned int)((PL_TRIGMAX - rx) & PL_TRIGMSK);
 	xf_vw.ry = (unsigned int)((PL_TRIGMAX - ry) & PL_TRIGMSK);
+	xf_vw.rz = (unsigned int)((PL_TRIGMAX - rz) & PL_TRIGMSK);
 }
 
 extern void
@@ -195,7 +196,7 @@ PL_mst_rotatez(int rz)
 extern void
 PL_mst_xf_modelview_vec(int *v, int *out, int len)
 {
-	register int sx, sy, cx, cy;
+	register int sx, sy, cx, cy, cz, sz;
 	register int x, y, z, w;
 	int xx, yy, zz;
 	int tx, ty, tz;
@@ -205,6 +206,8 @@ PL_mst_xf_modelview_vec(int *v, int *out, int len)
 	sx = PL_sin[xf_vw.rx];
 	cy = PL_cos[xf_vw.ry];
 	sy = PL_sin[xf_vw.ry];
+	cz = PL_cos[xf_vw.rz];
+	sz = PL_sin[xf_vw.rz];
 
 	m = mat_model;
 
@@ -229,6 +232,11 @@ PL_mst_xf_modelview_vec(int *v, int *out, int len)
 		/* pitch */
 		w = (yy * cx - zz * sx) >> PL_P;
 		zz = (yy * sx + zz * cx) >> PL_P;
+		yy = w;
+
+		/* roll */
+		w = (xx * cz - yy * sz) >> PL_P;
+		xx = (xx * sz + yy * cz) >> PL_P;
 		yy = w;
 
 		out[0] = xx;

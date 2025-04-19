@@ -106,7 +106,7 @@ int main()
 		PL_clear_vp(0, 0, 0);
 		PL_polygon_count = 0;
 
-		PL_set_camera(0, 0, 0, 0, 0);
+		PL_set_camera(0, 0, 0, 0, 0, sinvar);
 
 		{ /* draw textured cube */
 			PL_raster_mode = PL_NODRAW;
@@ -128,26 +128,22 @@ int main()
 			PL_mst_translate(0, 0, close +200);
 			//PL_mst_rotatex(sinvar >> 2);
 			PL_mst_rotatex(32);
-			PL_mst_rotatey(sinvar >> 1);
+			//PL_mst_rotatey(sinvar >> 1);
 			//PL_mst_scale(PL_P_ONE * ((sinvar & 0xff) + 128) >> 8, PL_P_ONE, PL_P_ONE);
 			PL_render_object(cube_textured);
 			PL_mst_pop();
 		}
 		{ /* draw textured cube */
-			PL_raster_mode = PL_FLAT_NOLIGHT;
+			PL_raster_mode = PL_FLAT;
 			PL_mst_push();
 			PL_mst_translate(32, 0, close + 500);
 			//PL_mst_rotatex(sinvar >> 2);
 			PL_mst_rotatex(64);
-			PL_mst_rotatey(sinvar >> 1);
+			//PL_mst_rotatey(sinvar >> 1);
 			//PL_mst_scale(PL_P_ONE * ((sinvar & 0xff) + 128) >> 8, PL_P_ONE, PL_P_ONE);
 			PL_render_object(cube);
 			PL_mst_pop();
 		}
-		//end_time = sys_clock_cycle_get_64();
-		//printf("us: %llu ms:%llu fps:%llu\n", end_time - start_time, (end_time - start_time) /
-//1000, 1000000 / (end_time - start_time));
-		//start_time = sys_clock_cycle_get_64();
 		dstart_time = sys_clock_cycle_get_32();
 		display_write(display_device, 0, 0, &buf_desc, video_buffer);
 		end_time = sys_clock_cycle_get_32();
@@ -160,7 +156,7 @@ dstart_time);
 		{
 			close_add = -1;
 		}
-		else if (close < 32)
+		else if (close < -150)
 		{
 			close_add = 1;
 		}

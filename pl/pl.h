@@ -308,7 +308,7 @@ extern void PL_mst_translate(int x, int y, int z);
 extern void PL_mst_rotatex(int rx);
 extern void PL_mst_rotatey(int ry);
 extern void PL_mst_rotatez(int rz);
-extern void PL_set_camera(int x, int y, int z, int rx, int ry);
+extern void PL_set_camera(int x, int y, int z, int rx, int ry, int rz);
 
 /* transform a stream of vertices by the current model+view */
 extern void PL_mst_xf_modelview_vec(int *v, int *out, int len);
