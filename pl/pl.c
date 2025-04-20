@@ -99,6 +99,9 @@ e_render_polygon(struct PL_POLY *poly)
 	case PL_FLAT_NOLIGHT:
 		stype = PL_STREAM_FLAT;
 		break;
+	case PL_EDGE_WIREFRAME:
+		stype = PL_STREAM_FLAT;
+		break;
 	case PL_WIREFRAME:
 		stype = PL_STREAM_FLAT;
 		break;
@@ -147,16 +150,18 @@ e_render_polygon(struct PL_POLY *poly)
 	if (rmode == PL_TEXTURED) {
 		PL_lintx_poly(proj, nedge, tex->data);
 	} else if(rmode == PL_FLAT) {
-        PL_flat_poly(proj, nedge, poly->color);
-    } else if (rmode == PL_FLAT_NOLIGHT) {
-        PL_flat_poly_nolight(proj, nedge, poly->color);
-    } else if (rmode == PL_WIREFRAME) {
-        PL_wireframe_poly(proj, nedge, poly->color);
-    } else if (rmode == PL_TEXTURED_NOLIGHT) {
-        PL_lintx_poly_nolight(proj, nedge, tex->data);
-    } else if (rmode == PL_NODRAW) {
-        PL_nodraw_poly(proj, nedge, poly->color);
-    }
+		PL_flat_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_FLAT_NOLIGHT) {
+		PL_flat_poly_nolight(proj, nedge, poly->color);
+	} else if (rmode == PL_EDGE_WIREFRAME) {
+		PL_edge_wireframe_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_WIREFRAME) {
+		PL_wireframe_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_TEXTURED_NOLIGHT) {
+		PL_lintx_poly_nolight(proj, nedge, tex->data);
+	} else if (rmode == PL_NODRAW) {
+		PL_nodraw_poly(proj, nedge, poly->color);
+	}
 }
 
 extern int

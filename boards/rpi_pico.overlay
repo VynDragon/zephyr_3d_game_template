@@ -1,0 +1,30 @@
+/ {
+	chosen {
+		zephyr,display = &ssd1363;
+	};
+
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST_PLUS>;
+
+	ssd1363: ssd1363@3c {
+		compatible = "solomon,ssd1363";
+		reg = <0x3c>;
+		width = <256>;
+		height = <128>;
+		precharge-period = <0x8>;
+		remap-value = <0x3200>;
+		oscillator-freq = <0x30>;
+		display-offset = <0x20>;
+		column-offset = <32>;
+		start-line = <0>;
+		multiplex-ratio = <127>;
+		phase-length = <0x74>;
+		precharge-voltage = <0xc>;
+		#greyscale-enhancement;
+		greyscale-table = [02 04 05 06 07 08 09 0C 10 12 14 16 1E 24 2A];
+		#inversion-on;
+	};
+};

@@ -84,9 +84,10 @@ extern int PL_clip_poly_nz(int *dst, int *src, int len, int num);
 #define PL_MAX_OBJ_V PL_MAX_VERTICES_PER_OBJECT
 
 /* only draw zbuff */
+#define PL_WIREFRAME            6
 #define PL_NODRAW               5
 #define PL_TEXTURED_NOLIGHT     4
-#define PL_WIREFRAME            3
+#define PL_EDGE_WIREFRAME       3
 #define PL_FLAT_NOLIGHT         2
 #define PL_FLAT     1
 #define PL_TEXTURED 0
@@ -246,6 +247,10 @@ extern void PL_flat_poly_nolight(int *stream, int len, int rgb);
 extern void PL_nodraw_poly(int *stream, int len, int rgb);
 
 /* Solid color polygon fill z buffer and wireframe fb
+ * Expecting input stream of 3 values [X,Y,Z] */
+extern void PL_edge_wireframe_poly(int *stream, int len, int rgb);
+
+/* Solid color polygon NOT fill z buffer NOT fill fb
  * Expecting input stream of 3 values [X,Y,Z] */
 extern void PL_wireframe_poly(int *stream, int len, int rgb);
 

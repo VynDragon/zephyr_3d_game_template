@@ -20,3 +20,5 @@
 //#define PL_COLOR_DEPTH_32 // default
 #define PL_COLOR_DEPTH_8 // L8
 //#define PL_COLOR_DEPTH_16 // RGB565
+
+#define PL_GFX_ATTRIBUTE __attribute__((optimize(3)))

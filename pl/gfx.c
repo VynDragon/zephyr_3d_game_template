@@ -20,6 +20,7 @@
 
 #include <limits.h>
 #include <string.h>
+#include <stdlib.h>
 
 int PL_hres;
 int PL_vres;
@@ -257,7 +258,7 @@ PL_clear_depth_vp(void)
 }
 
 /* scan convert polygon */
-static int
+PL_GFX_ATTRIBUTE static int
 pscan(int *stream, int dim, int len)
 {
 	int resv[PL_VDIM + PL_VDIM + (PL_MAX_POLY_VERTS * PL_STREAM_TEX)];
@@ -359,7 +360,7 @@ pscan(int *stream, int dim, int len)
 	return (scan_miny >= scan_maxy);
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_flat_poly(int *stream, int len, int rgb)
 {
 	int miny, maxy;
@@ -409,7 +410,7 @@ PL_flat_poly(int *stream, int len, int rgb)
 	PL_polygon_count++;
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_flat_poly_nolight(int *stream, int len, int rgb)
 {
     int miny, maxy;
@@ -438,7 +439,7 @@ PL_flat_poly_nolight(int *stream, int len, int rgb)
         do {
             if ((*zbuf << ZBUF_SHIFT) < sz) {
                 *zbuf = sz >> ZBUF_SHIFT;
-                *vbuf = rgb | 0xFF000000;
+                *vbuf = rgb;
             }
             sz += dz;
             vbuf++;
@@ -451,7 +452,7 @@ PL_flat_poly_nolight(int *stream, int len, int rgb)
     PL_polygon_count++;
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_nodraw_poly(int *stream, int len, int rgb)
 {
     int miny, maxy;
@@ -492,8 +493,8 @@ PL_nodraw_poly(int *stream, int len, int rgb)
     PL_polygon_count++;
 }
 
-extern void
-PL_wireframe_poly(int *stream, int len, int rgb)
+PL_GFX_ATTRIBUTE extern void
+PL_edge_wireframe_poly(int *stream, int len, int rgb)
 {
     int miny, maxy;
     int pos, beg, pbg;
@@ -539,7 +540,43 @@ PL_wireframe_poly(int *stream, int len, int rgb)
     PL_polygon_count++;
 }
 
-extern void
+static void
+plot_line (PL_VBUFFER_TYPE vbuf, int color, int x0, int y0, int x1, int y1)
+{
+	int dx =  abs (x1 - x0), sx = x0 < x1 ? 1 : -1;
+	int dy = -abs (y1 - y0), sy = y0 < y1 ? 1 : -1;
+	int err = dx + dy, e2; /* error value e_xy */
+
+	for (;;){  /* loop */
+		if (PL_vp_min_x < x0 && PL_vp_max_x > x0 && PL_vp_min_y < y0 && PL_vp_max_y > y0)
+			vbuf[x0 + y0 * PL_hres] = color;
+		if (x0 == x1 && y0 == y1) break;
+		e2 = 2 * err;
+		if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
+		if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
+	}
+}
+
+PL_GFX_ATTRIBUTE extern void
+PL_wireframe_poly(int *stream, int len, int rgb)
+{
+    ZBUF_TYPE *zbuf;
+
+	zbuf = PL_depth_buffer;
+
+	for (int i = 0; i < len * PL_STREAM_FLAT; i += PL_STREAM_FLAT) {
+		if (i < (len * PL_STREAM_FLAT - PL_STREAM_FLAT)) {
+			plot_line(PL_video_buffer, rgb, stream[i], stream[i+1], stream[i+PL_STREAM_FLAT], stream[i+PL_STREAM_FLAT+1]);
+		}
+		else {
+			plot_line(PL_video_buffer, rgb, stream[i], stream[i+1], stream[0], stream[1]);
+		}
+	}
+
+    PL_polygon_count++;
+}
+
+PL_GFX_ATTRIBUTE extern void
 PL_lintx_poly(int *stream, int len, int *texels)
 {
 	int miny, maxy;
@@ -605,7 +642,7 @@ PL_lintx_poly(int *stream, int len, int *texels)
 	PL_polygon_count++;
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_lintx_poly_nolight(int *stream, int len, int *texels)
 {
     int miny, maxy;
@@ -647,7 +684,7 @@ PL_lintx_poly_nolight(int *stream, int len, int *texels)
                  * because the texture is guaranteed to be square.
                  */
                 yt = texels[(su >> PL_TP) | (sv >> PL_TP << TXSH)];
-				*vbuf = yt  | 0xFF000000;;
+				*vbuf = yt;
             }
             su += du;
             sv += dv;

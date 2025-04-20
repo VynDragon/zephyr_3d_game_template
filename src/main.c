@@ -5,6 +5,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/display.h>
+#include <zephyr/timing/timing.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,11 +14,11 @@ LOG_MODULE_REGISTER(main);
 
 // intended for 48k dtcm
 #if DT_HAS_CHOSEN(zephyr_dtcm)
-static __attribute__((section("DTCM"))) uint8_t video_buffer[SIZE_W * PL_SIZE_H] = {0};
+static __attribute__((section("DTCM"))) uint8_t video_buffer[SIZE_W * PL_SIZE_H];
 #else
-static uint8_t video_buffer[PL_SIZE_W * PL_SIZE_H] = {0};
+static uint8_t video_buffer[PL_SIZE_W * PL_SIZE_H];
 #endif
-static int16_t depth_buffer[PL_SIZE_W * PL_SIZE_H] = {0};
+static int16_t depth_buffer[PL_SIZE_W * PL_SIZE_H];
 
 static struct PL_OBJ *cube;
 static struct PL_OBJ *cube_textured;
@@ -62,8 +63,8 @@ int main()
 {
 	struct display_buffer_descriptor buf_desc;
 	int sinvar = 0;
-	uint32_t start_time, end_time;
-	uint32_t dstart_time;
+	timing_t start_time, end_time, dstart_time, rend_time, rstart_time;
+	uint32_t total_time_us, render_time_us, draw_time_us;
 	int close = 800;
 	int close_add = 1;
 
@@ -72,14 +73,19 @@ int main()
 		return 0;
 	}
 
+	timing_init();
+	timing_start();
+
 	//k_msleep(1000);
 	display_blanking_on(display_device);
-	//display_set_pixel_format(display_device, PIXEL_FORMAT_L_8);
+	display_set_pixel_format(display_device, PIXEL_FORMAT_L_8);
 	display_blanking_off(display_device);
 
 	maketex();
 
 	PL_init(video_buffer, depth_buffer, PL_SIZE_W, PL_SIZE_H);
+
+	//PL_set_viewport(64, 32, 192 - 1, 96 - 1, 1);
 
 	PL_texture(NULL);
 
@@ -101,14 +107,15 @@ int main()
 	buf_desc.pitch = PL_SIZE_W;
 
 	while (1) {
-		start_time = sys_clock_cycle_get_32();
+		start_time = timing_counter_get();
 		/* clear viewport to black */
 		PL_clear_vp(0, 0, 0);
 		PL_polygon_count = 0;
 
+		rstart_time = timing_counter_get();
 		PL_set_camera(0, 0, 0, 0, 0, sinvar);
 
-		{ /* draw textured cube */
+		{ /* draw edge cube */
 			PL_raster_mode = PL_NODRAW;
 			PL_mst_push();
 			PL_mst_translate(-32, 0, close);
@@ -133,8 +140,8 @@ int main()
 			PL_render_object(cube_textured);
 			PL_mst_pop();
 		}
-		{ /* draw textured cube */
-			PL_raster_mode = PL_FLAT;
+		{ /* draw cube */
+			PL_raster_mode = PL_FLAT_NOLIGHT;
 			PL_mst_push();
 			PL_mst_translate(32, 0, close + 500);
 			//PL_mst_rotatex(sinvar >> 2);
@@ -144,12 +151,26 @@ int main()
 			PL_render_object(cube);
 			PL_mst_pop();
 		}
-		dstart_time = sys_clock_cycle_get_32();
+		{ /* draw wireframe cube */
+			PL_raster_mode = PL_WIREFRAME;
+			PL_mst_push();
+			PL_mst_translate(64, 0, close);
+			//PL_mst_rotatex(sinvar >> 2);
+			PL_mst_rotatex(64);
+			PL_mst_rotatex(sinvar);
+			//PL_mst_scale(PL_P_ONE * ((sinvar & 0xff) + 128) >> 8, PL_P_ONE, PL_P_ONE);
+			PL_render_object(cube);
+			PL_mst_pop();
+		}
+		rend_time = timing_counter_get();
+		dstart_time = timing_counter_get();
 		display_write(display_device, 0, 0, &buf_desc, video_buffer);
-		end_time = sys_clock_cycle_get_32();
-		printf("us: %u ms:%u fps:%u display us:%u\n", end_time - start_time, (end_time -
-start_time) / 1000, 1000000 / (end_time - start_time != 0 ? end_time - start_time : 1), end_time -
-dstart_time);
+		end_time = timing_counter_get();
+		total_time_us = timing_cycles_to_ns(timing_cycles_get(&start_time, &end_time)) / 1000;
+		render_time_us = timing_cycles_to_ns(timing_cycles_get(&rstart_time, &rend_time)) / 1000;
+		draw_time_us = timing_cycles_to_ns(timing_cycles_get(&dstart_time, &end_time)) / 1000;
+		printf("total us: %u ms:%u fps:%u\n", total_time_us, (total_time_us) / 1000, 1000000 / (total_time_us != 0 ? total_time_us : 1));
+		printf("display us:%u render us:%u render fps: %u\n", draw_time_us, render_time_us, 1000000 / (render_time_us != 0 ? render_time_us : 1));
 		sinvar+=1;
 		close+=close_add*5;
 		if (close > 1000)
@@ -161,7 +182,7 @@ dstart_time);
 			close_add = 1;
 		}
 		//printf("display us: %llu\n", end_time - start_time);
-		k_msleep(10);
+		k_msleep(1);
 		//msleep(100);
 	}
 
