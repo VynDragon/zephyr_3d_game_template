@@ -105,6 +105,11 @@ extern struct PL_TEX *PL_cur_tex;
 extern int PL_raster_mode; /* PL_FLAT or PL_TEXTURED */
 extern int PL_cull_mode;
 
+typedef struct PL_viewtransform {
+	int tx, ty, tz;
+	unsigned int rx, ry, rz;
+} PL_viewtransform;
+
 struct PL_POLY {
 	struct PL_TEX *tex;
 

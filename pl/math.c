@@ -21,6 +21,12 @@
 
 #include <string.h>
 
+
+/* sin(pi/128) * 32768
+ * sin(pi/256) * 65536
+ * It is repeating over pi instead of not over 0.5pi,
+ * maybe add code for 128 entries to reduce size or 256 entries for more precision?
+ */
 int PL_sin[PL_TRIGMAX] = {
 	0x0000, 0x0324, 0x0647, 0x096a, 0x0c8b, 0x0fab, 0x12c8, 0x15e2, 0x18f8,
 	0x1c0b, 0x1f19, 0x2223, 0x2528, 0x2826, 0x2b1f, 0x2e11, 0x30fb, 0x33de,
@@ -40,10 +46,7 @@ int PL_sin[PL_TRIGMAX] = {
 
 int PL_cos[PL_TRIGMAX];
 
-static struct {
-	int tx, ty, tz;
-	unsigned int rx, ry, rz;
-} xf_vw; /* view transform */
+PL_viewtransform xf_vw; /* view transform */
 
 static int mat_idt[16] = PL_IDT_MAT;
 static int mat_model[16] = PL_IDT_MAT;

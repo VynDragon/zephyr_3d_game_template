@@ -9,7 +9,7 @@
 
 #define PL_SIZE_WH_MAX 256
 
-#define PL_MAX_VERTICES_PER_OBJECT 256
+#define PL_MAX_VERTICES_PER_OBJECT 3584
 
 /* texture side size is one, shifted by this number must be >= 2 */
 #define PL_TEXTURE_SIZE_SHIFT 5 // 5 = 32x32
@@ -22,3 +22,8 @@
 //#define PL_COLOR_DEPTH_16 // RGB565
 
 #define PL_GFX_ATTRIBUTE __attribute__((optimize(3)))
+
+// Enable precalculated mul8 for speed, reduces ram space.
+#define PL_PRECALCULATED_MUL8
+// Enable precalculated mul8 for speed, cancel reduces ram space.
+#define PL_PRECALCULATED_MUL8_CONST

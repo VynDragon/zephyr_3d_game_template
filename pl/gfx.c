@@ -96,7 +96,13 @@ static int *attrbuf = g3dresv + G3R_OFFS_ATTR; /* attribute buffer */
 static int *xLc = g3dresv + G3R_OFFS_XLC;
 static int *xRc = g3dresv + G3R_OFFS_XLR;
 
+#if defined(PL_PRECALCULATED_MUL8)
+#if defined(PL_PRECALCULATED_MUL8_CONST)
+#include "mul8_light_table.h"
+#else
 static unsigned char mul8[256][256];
+#endif
+#endif
 
 #ifdef PL_REDUCED_DEPTH_PRECISION
 #if defined(PL_COLOR_DEPTH_32)
@@ -122,7 +128,7 @@ PL_init(uint8_t *video, int *depth, int hres, int vres)
 #endif
 #endif
 {
-	int i, j;
+	int i;
 
 	PL_hres = hres;
 	PL_vres = vres;
@@ -141,13 +147,14 @@ PL_init(uint8_t *video, int *depth, int hres, int vres)
 		EXT_error(PL_ERR_NO_MEM, "gfx", "no video buffer");
 	}
 
-
+#if defined(PL_PRECALCULATED_MUL8) && !defined(PL_PRECALCULATED_MUL8_CONST)
 	/* 8-bit * 8-bit number multiplication table */
 	for (i = 0; i < 256; i++) {
-		for (j = 0; j < 256; j++) {
+		for (int j = 0; j < 256; j++) {
 			mul8[i][j] = (unsigned char)((i * j) >> 8);
 		}
 	}
+#endif
 
 	/* set buffer offsets */
 	x_L = g3dresv + vres;
@@ -396,7 +403,11 @@ PL_flat_poly(int *stream, int len, int rgb)
 				if (d >= 256) {
 					*vbuf = rgb;
 				} else {
+					#if defined(PL_PRECALCULATED_MUL8)
 					*vbuf = mul8[d][r8] << 16 | mul8[d][g8] << 8 | mul8[d][b8];
+					#else
+					*vbuf = (d * r8 >> 8) << 16 | (d * g8 >> 8) << 8 | d * b8 >> 8;
+					#endif
 				}
 			}
 			sz += dz;
@@ -622,9 +633,15 @@ PL_lintx_poly(int *stream, int len, int *texels)
 				if (d >= 256) {
 					*vbuf = yt;
 				} else {
+					#if defined(PL_PRECALCULATED_MUL8)
 					r = mul8[d][(yt >> 16) & 0xff] << 16;
 					r |= mul8[d][(yt >> 8) & 0xff] << 8;
 					r |= mul8[d][(yt >> 0) & 0xff] << 0;
+					#else
+					r  = d * ((yt >> 16) & 0xff) << 16;
+					r |= d * ((yt >> 8) & 0xff) <<  8;
+					r |= d * ((yt >> 0) & 0xff) <<  0;
+					#endif
 					*vbuf = r;
 				}
 			}
