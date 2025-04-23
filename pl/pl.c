@@ -32,7 +32,7 @@ int PL_cull_mode = PL_CULL_BACK;
 static int tmp_vertices[PL_MAX_OBJ_V];
 
 static void
-load_stream(int *dst, int *src, int dim, int len, int *minz, int *maxz)
+load_stream(int *dst, const int *src, int dim, int len, int *minz, int *maxz)
 {
 	int index, z;
 	int lminz = INT_MAX;
@@ -61,18 +61,117 @@ load_stream(int *dst, int *src, int dim, int len, int *minz, int *maxz)
 	*maxz = lmaxz;
 }
 
+static int resv[(PL_MAX_POLY_VERTS * PL_VDIM) * 3];
+
 static void
-e_render_polygon(struct PL_POLY *poly)
+e_render_polygon_const(const struct PL_POLY_CONST *poly)
 {
 	int minz, maxz; /* z extents for frustum testing */
 	int res;        /* result of frustum test */
 	int stype;      /* stream type */
 	int nedge, rmode;
-	struct PL_TEX *tex = PL_cur_tex;
+	const struct PL_TEX_CONST *tex = NULL;
 	int *clipped;
 	int back_face;
 
-	int resv[(PL_MAX_POLY_VERTS * PL_VDIM) * 3];
+	int *copy = resv + (0 * (PL_MAX_POLY_VERTS * PL_VDIM));
+	int *clip = resv + (1 * (PL_MAX_POLY_VERTS * PL_VDIM));
+	int *proj = resv + (2 * (PL_MAX_POLY_VERTS * PL_VDIM));
+
+	nedge = poly->n_verts & 0xf;
+	rmode = PL_raster_mode;
+
+	switch (rmode) {
+	case PL_TEXTURED:
+		tex = poly->tex;
+		if (tex != NULL && tex->data) {
+			stype = PL_STREAM_TEX;
+			break;
+		}
+		/* if no texture, flat color */
+		stype = PL_STREAM_FLAT;
+		rmode = PL_FLAT;
+		break;
+	case PL_FLAT:
+		stype = PL_STREAM_FLAT;
+		break;
+	case PL_FLAT_NOLIGHT:
+		stype = PL_STREAM_FLAT;
+		break;
+	case PL_EDGE_WIREFRAME:
+		stype = PL_STREAM_FLAT;
+		break;
+	case PL_WIREFRAME:
+		stype = PL_STREAM_FLAT;
+		break;
+	case PL_NODRAW:
+		stype = PL_STREAM_FLAT;
+		break;
+	case PL_TEXTURED_NOLIGHT:
+		tex = poly->tex;
+		if (tex != NULL && tex->data) {
+			stype = PL_STREAM_TEX;
+			break;
+		}
+		/* if no texture, flat color */
+		stype = PL_STREAM_FLAT;
+		rmode = PL_FLAT;
+		break;
+	default:
+		return; /* bad raster mode */
+	}
+
+	load_stream(copy, poly->verts, stype, nedge + 1, &minz, &maxz);
+	res = PL_frustum_test(minz, maxz);
+
+	if (res == PL_Z_OUTC_OUTSIDE) {
+		return;
+	}
+
+	/* test winding order in view space rather than screen space */
+	back_face = PL_winding_order(copy, copy + stype, copy + stype * 2);
+
+	if ((back_face + 1) & PL_cull_mode) {
+		return;
+	}
+
+	if (res == PL_Z_OUTC_PART_NZ) {
+		clipped = clip;
+		nedge = PL_clip_poly_nz(clipped, copy, stype, nedge);
+	} else {
+		clipped = copy;
+	}
+
+	PL_psp_project(clipped, proj, stype, nedge + 1, PL_fov);
+
+	if (rmode == PL_TEXTURED) {
+		PL_lintx_poly(proj, nedge, tex->data);
+	} else if(rmode == PL_FLAT) {
+		PL_flat_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_FLAT_NOLIGHT) {
+		PL_flat_poly_nolight(proj, nedge, poly->color);
+	} else if (rmode == PL_EDGE_WIREFRAME) {
+		PL_edge_wireframe_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_WIREFRAME) {
+		PL_wireframe_poly(proj, nedge, poly->color);
+	} else if (rmode == PL_TEXTURED_NOLIGHT) {
+		PL_lintx_poly_nolight(proj, nedge, tex->data);
+	} else if (rmode == PL_NODRAW) {
+		PL_nodraw_poly(proj, nedge, poly->color);
+	}
+}
+
+static void
+e_render_polygon(const struct PL_POLY *poly)
+{
+	int minz, maxz; /* z extents for frustum testing */
+	int res;        /* result of frustum test */
+	int stype;      /* stream type */
+	int nedge, rmode;
+	const struct PL_TEX *tex = PL_cur_tex;
+	int *clipped;
+	int back_face;
+
 	int *copy = resv + (0 * (PL_MAX_POLY_VERTS * PL_VDIM));
 	int *clip = resv + (1 * (PL_MAX_POLY_VERTS * PL_VDIM));
 	int *proj = resv + (2 * (PL_MAX_POLY_VERTS * PL_VDIM));
@@ -183,7 +282,7 @@ PL_xfproj_vert(int *in, int *out)
 }
 
 extern void
-PL_render_object(struct PL_OBJ *obj)
+PL_render_object(const struct PL_OBJ *obj)
 {
 	int i;
 
@@ -199,6 +298,26 @@ PL_render_object(struct PL_OBJ *obj)
 
 	for (i = 0; i < obj->n_polys; i++) {
 		e_render_polygon(&obj->polys[i]);
+	}
+}
+
+extern void
+PL_render_object_const(const struct PL_OBJ_CONST *obj)
+{
+	int i;
+
+	if (!obj) {
+		return;
+	}
+
+	if (obj->n_verts >= PL_MAX_OBJ_V) {
+		EXT_error(PL_ERR_MISC, "objmgr", "too many object vertices!");
+	}
+
+	PL_mst_xf_modelview_vec(obj->verts, tmp_vertices, obj->n_verts);
+
+	for (i = 0; i < obj->n_polys; i++) {
+		e_render_polygon_const(&obj->polys[i]);
 	}
 }
 
@@ -230,7 +349,7 @@ PL_delete_object(struct PL_OBJ *obj)
 }
 
 extern void
-PL_copy_object(struct PL_OBJ *dst, struct PL_OBJ *src)
+PL_copy_object(struct PL_OBJ *dst, const struct PL_OBJ *src)
 {
 	int i, size;
 

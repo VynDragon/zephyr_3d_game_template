@@ -196,8 +196,8 @@ PL_mst_rotatez(int rz)
 
 #undef _MI_
 
-extern void
-PL_mst_xf_modelview_vec(int *v, int *out, int len)
+PL_GFX_ATTRIBUTE extern void
+PL_mst_xf_modelview_vec(const int *v, int *out, int len)
 {
 	register int sx, sy, cx, cy, cz, sz;
 	register int x, y, z, w;
@@ -250,7 +250,7 @@ PL_mst_xf_modelview_vec(int *v, int *out, int len)
 	}
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_mat_mul(int *a, int *b)
 {
 	int m[16];
@@ -294,7 +294,7 @@ PL_mat_cpy(int *dst, int *src)
 	memcpy(dst, src, sizeof(int) * 16);
 }
 
-extern int
+PL_GFX_ATTRIBUTE extern int
 PL_winding_order(int *a, int *b, int *c)
 {
 	int nc[3];
@@ -317,7 +317,7 @@ PL_vec_shorten(int *v)
 	}
 }
 
-extern void
+PL_GFX_ATTRIBUTE extern void
 PL_psp_project(int *src, int *dst, int len, int num, int fov)
 {
 	int z, ffac;

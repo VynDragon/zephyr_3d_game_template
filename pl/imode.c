@@ -23,14 +23,14 @@
 static struct PL_OBJ product;
 static struct PL_OBJ working_copy;
 
-static int vertices[PL_MAX_OBJ_V];             /* temp storage for vertices */
-static struct PL_POLY polys[PL_MAX_OBJ_V / 4]; /* temp storage for polygons */
+static int vertices[PL_MAX_VERTICES_PER_OBJECT_IMODE];             /* temp storage for vertices */
+static struct PL_POLY polys[PL_MAX_VERTICES_PER_OBJECT_IMODE / 4]; /* temp storage for polygons */
 
 static int polytype = PL_TRIANGLES;
 static int n_vertices = 0; /* entered so far */
 static int n_polys = 0;    /* entered so far */
 
-static struct PL_TEX *curtex = NULL;
+static const struct PL_TEX *curtex = NULL;
 
 static int cur_verts[4];
 static int vert_num = 0;
@@ -162,7 +162,7 @@ PL_type(int type)
 }
 
 extern void
-PL_texture(struct PL_TEX *tex)
+PL_texture(const struct PL_TEX *tex)
 {
 	curtex = tex;
 }

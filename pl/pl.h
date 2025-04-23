@@ -110,14 +110,32 @@ typedef struct PL_viewtransform {
 	unsigned int rx, ry, rz;
 } PL_viewtransform;
 
-struct PL_POLY {
-	struct PL_TEX *tex;
+struct PL_POLY_CONST {
+	const struct PL_TEX_CONST *tex;
 
 	/* a user defined polygon may only have 3 or 4 vertices.  */
 
 	/* [index, U, V] array of indices into obj verts array */
 	int verts[6 * PL_POLY_VLEN];
 	int color;
+	int n_verts;
+};
+
+struct PL_POLY {
+	const struct PL_TEX *tex;
+
+	/* a user defined polygon may only have 3 or 4 vertices.  */
+
+	/* [index, U, V] array of indices into obj verts array */
+	int verts[6 * PL_POLY_VLEN];
+	int color;
+	int n_verts;
+};
+
+struct PL_OBJ_CONST {
+	const struct PL_POLY_CONST *polys; /* list of polygons in the object */
+	const int *verts;            /* array of [x, y, z, 0] values */
+	int n_polys;
 	int n_verts;
 };
 
@@ -131,9 +149,10 @@ struct PL_OBJ {
 /* take an XYZ coord in world space and convert to screen space */
 extern int PL_xfproj_vert(int *in, int *out);
 
-extern void PL_render_object(struct PL_OBJ *obj);
+extern void PL_render_object(const struct PL_OBJ *obj);
+extern void PL_render_object_const(const struct PL_OBJ_CONST *obj);
 extern void PL_delete_object(struct PL_OBJ *obj);
-extern void PL_copy_object(struct PL_OBJ *dst, struct PL_OBJ *src);
+extern void PL_copy_object(struct PL_OBJ *dst, const struct PL_OBJ *src);
 
 /*****************************************************************************/
 /*********************************** IMODE ***********************************/
@@ -147,7 +166,7 @@ extern void PL_ibeg(void); /* begin primitive */
 extern void PL_type(int type);
 
 /* applies to the next polygon made. */
-extern void PL_texture(struct PL_TEX *tex);
+extern void PL_texture(const struct PL_TEX *tex);
 /* last color defined before the poly is finished is used as the poly's color */
 extern void PL_color(int r, int g, int b);
 extern void PL_texcoord(int u, int v);
@@ -229,6 +248,10 @@ struct PL_TEX {
 	int *data; /* 4 byte-per-pixel true color X8R8G8B8 color data */
 };
 
+struct PL_TEX_CONST {
+	const int *data; /* 4 byte-per-pixel true color X8R8G8B8 color data */
+};
+
 
 /* clear viewport color and depth */
 extern void PL_clear_vp(int r, int g, int b);
@@ -261,11 +284,11 @@ extern void PL_wireframe_poly(int *stream, int len, int rgb);
 
 /* Affine (linear) texture mapped polygon fill.
 * Expecting input stream of 5 values [X,Y,Z,U,V] */
-extern void PL_lintx_poly(int *stream, int len, int *texel);
+extern void PL_lintx_poly(int *stream, int len, const int *texel);
 
 /* Affine (linear) texture mapped polygon fill. No depth light
  * Expecting input stream of 5 values [X,Y,Z,U,V] */
-extern void PL_lintx_poly_nolight(int *stream, int len, int *texel);
+extern void PL_lintx_poly_nolight(int *stream, int len, const int *texel);
 
 /*****************************************************************************/
 /*********************************** MATH ************************************/
@@ -321,7 +344,7 @@ extern void PL_mst_rotatez(int rz);
 extern void PL_set_camera(int x, int y, int z, int rx, int ry, int rz);
 
 /* transform a stream of vertices by the current model+view */
-extern void PL_mst_xf_modelview_vec(int *v, int *out, int len);
+extern void PL_mst_xf_modelview_vec(const int *v, int *out, int len);
 
 /* result is stored in 'a' */
 extern void PL_mat_mul(int *a, int *b);

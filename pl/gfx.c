@@ -588,7 +588,7 @@ PL_wireframe_poly(int *stream, int len, int rgb)
 }
 
 PL_GFX_ATTRIBUTE extern void
-PL_lintx_poly(int *stream, int len, int *texels)
+PL_lintx_poly(int *stream, int len, const int *texels)
 {
 	int miny, maxy;
 	int pos, beg, pbg;
@@ -637,12 +637,13 @@ PL_lintx_poly(int *stream, int len, int *texels)
 					r = mul8[d][(yt >> 16) & 0xff] << 16;
 					r |= mul8[d][(yt >> 8) & 0xff] << 8;
 					r |= mul8[d][(yt >> 0) & 0xff] << 0;
-					#else
-					r  = d * ((yt >> 16) & 0xff) << 16;
-					r |= d * ((yt >> 8) & 0xff) <<  8;
-					r |= d * ((yt >> 0) & 0xff) <<  0;
-					#endif
 					*vbuf = r;
+					#else
+					/*r  = (d * ((yt >> 16) & 0xff) >> 8) << 16;
+					r |= (d * ((yt >> 8) & 0xff) >> 8) <<  8;
+					r |= (d * ((yt >> 0) & 0xff) >> 8) <<  0;*/
+					*vbuf = ((d * yt) >> 8);
+					#endif
 				}
 			}
 			su += du;
@@ -660,7 +661,7 @@ PL_lintx_poly(int *stream, int len, int *texels)
 }
 
 PL_GFX_ATTRIBUTE extern void
-PL_lintx_poly_nolight(int *stream, int len, int *texels)
+PL_lintx_poly_nolight(int *stream, int len, const int *texels)
 {
     int miny, maxy;
     int pos, beg, pbg;
