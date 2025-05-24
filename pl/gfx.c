@@ -40,12 +40,8 @@ uint8_t *PL_video_buffer = NULL;
 #endif
 
 #ifdef PL_REDUCED_DEPTH_PRECISION
-#define ZBUF_TYPE int16_t
-#define ZBUF_SHIFT 16
 int16_t *PL_depth_buffer = NULL;
 #else
-#define ZBUF_TYPE int
-#define ZBUF_SHIFT 0
 int *PL_depth_buffer = NULL;
 #endif
 
@@ -264,12 +260,12 @@ PL_clear_depth_vp(void)
 	}
 }
 
+static int resv[PL_VDIM + PL_VDIM + (PL_MAX_POLY_VERTS * PL_STREAM_TEX)];
+
 /* scan convert polygon */
 PL_GFX_ATTRIBUTE static int
 pscan(int *stream, int dim, int len)
 {
-	int resv[PL_VDIM + PL_VDIM + (PL_MAX_POLY_VERTS * PL_STREAM_TEX)];
-
 	int rdim;
 	int *vA, *vB;
 	int x, y, dx, dy;
@@ -669,7 +665,7 @@ PL_lintx_poly_nolight(int *stream, int len, const int *texels)
     ZBUF_TYPE *zbuf;
     int yt;
     int du = 0, dv = 0, dz;
-    int su = 0, sv = 0, sz;
+    register int su = 0, sv = 0, sz;
     int dlen;
 
     if (pscan(stream, PL_STREAM_TEX, len)) {

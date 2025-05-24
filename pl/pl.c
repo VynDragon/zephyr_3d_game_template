@@ -12,6 +12,10 @@
 
 #include "pl.h"
 
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/timing/timing.h>
+
 /*  pl.c
 *
 * Handles objects, glues the different modules together.
@@ -61,6 +65,11 @@ load_stream(int *dst, const int *src, int dim, int len, int *minz, int *maxz)
 	*maxz = lmaxz;
 }
 
+#ifdef PERFORMANCE_MEASURE
+static uint32_t total_calculate_time_us;
+static uint32_t total_fill_time_us;
+#endif
+
 static int resv[(PL_MAX_POLY_VERTS * PL_VDIM) * 3];
 
 static void
@@ -73,6 +82,10 @@ e_render_polygon_const(const struct PL_POLY_CONST *poly)
 	const struct PL_TEX_CONST *tex = NULL;
 	int *clipped;
 	int back_face;
+#ifdef PERFORMANCE_MEASURE
+	timing_t start_time, end_time;
+	start_time = timing_counter_get();
+#endif
 
 	int *copy = resv + (0 * (PL_MAX_POLY_VERTS * PL_VDIM));
 	int *clip = resv + (1 * (PL_MAX_POLY_VERTS * PL_VDIM));
@@ -144,6 +157,12 @@ e_render_polygon_const(const struct PL_POLY_CONST *poly)
 
 	PL_psp_project(clipped, proj, stype, nedge + 1, PL_fov);
 
+#ifdef PERFORMANCE_MEASURE
+	end_time = timing_counter_get();
+	total_calculate_time_us += timing_cycles_to_ns(timing_cycles_get(&start_time, &end_time)) / 1000;
+	start_time = timing_counter_get();
+#endif
+
 	if (rmode == PL_TEXTURED) {
 		PL_lintx_poly(proj, nedge, tex->data);
 	} else if(rmode == PL_FLAT) {
@@ -159,6 +178,10 @@ e_render_polygon_const(const struct PL_POLY_CONST *poly)
 	} else if (rmode == PL_NODRAW) {
 		PL_nodraw_poly(proj, nedge, poly->color);
 	}
+	#ifdef PERFORMANCE_MEASURE
+	end_time = timing_counter_get();
+	total_fill_time_us += timing_cycles_to_ns(timing_cycles_get(&start_time, &end_time)) / 1000;
+	#endif
 }
 
 static void
@@ -171,6 +194,10 @@ e_render_polygon(const struct PL_POLY *poly)
 	const struct PL_TEX *tex = PL_cur_tex;
 	int *clipped;
 	int back_face;
+#ifdef PERFORMANCE_MEASURE
+	timing_t start_time, end_time;
+	start_time = timing_counter_get();
+#endif
 
 	int *copy = resv + (0 * (PL_MAX_POLY_VERTS * PL_VDIM));
 	int *clip = resv + (1 * (PL_MAX_POLY_VERTS * PL_VDIM));
@@ -246,6 +273,12 @@ e_render_polygon(const struct PL_POLY *poly)
 
 	PL_psp_project(clipped, proj, stype, nedge + 1, PL_fov);
 
+#ifdef PERFORMANCE_MEASURE
+	end_time = timing_counter_get();
+	total_calculate_time_us += timing_cycles_to_ns(timing_cycles_get(&start_time, &end_time)) / 1000;
+	start_time = timing_counter_get();
+#endif
+
 	if (rmode == PL_TEXTURED) {
 		PL_lintx_poly(proj, nedge, tex->data);
 	} else if(rmode == PL_FLAT) {
@@ -261,6 +294,10 @@ e_render_polygon(const struct PL_POLY *poly)
 	} else if (rmode == PL_NODRAW) {
 		PL_nodraw_poly(proj, nedge, poly->color);
 	}
+	#ifdef PERFORMANCE_MEASURE
+	end_time = timing_counter_get();
+	total_fill_time_us += timing_cycles_to_ns(timing_cycles_get(&start_time, &end_time)) / 1000;
+	#endif
 }
 
 extern int
@@ -296,9 +333,17 @@ PL_render_object(const struct PL_OBJ *obj)
 
 	PL_mst_xf_modelview_vec(obj->verts, tmp_vertices, obj->n_verts);
 
+#ifdef PERFORMANCE_MEASURE
+	total_calculate_time_us = 0;
+	total_fill_time_us = 0;
+#endif
 	for (i = 0; i < obj->n_polys; i++) {
 		e_render_polygon(&obj->polys[i]);
 	}
+#ifdef PERFORMANCE_MEASURE
+	printf("total calculation time of render us: %u fps:%u\n", total_calculate_time_us, 1000000 / (total_calculate_time_us != 0 ? total_calculate_time_us : 1));
+	printf("total fill time of render us: %u fps:%u\n", total_fill_time_us, 1000000 / (total_fill_time_us != 0 ? total_fill_time_us : 1));
+#endif
 }
 
 extern void
@@ -316,9 +361,17 @@ PL_render_object_const(const struct PL_OBJ_CONST *obj)
 
 	PL_mst_xf_modelview_vec(obj->verts, tmp_vertices, obj->n_verts);
 
+#ifdef PERFORMANCE_MEASURE
+	total_calculate_time_us = 0;
+	total_fill_time_us = 0;
+#endif
 	for (i = 0; i < obj->n_polys; i++) {
 		e_render_polygon_const(&obj->polys[i]);
 	}
+#ifdef PERFORMANCE_MEASURE
+	printf("total calculation time of render us: %u fps:%u\n", total_calculate_time_us, 1000000 / (total_calculate_time_us != 0 ? total_calculate_time_us : 1));
+	printf("total fill time of render us: %u fps:%u\n", total_fill_time_us, 1000000 / (total_fill_time_us != 0 ? total_fill_time_us : 1));
+#endif
 }
 
 extern void

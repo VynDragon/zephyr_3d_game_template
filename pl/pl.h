@@ -100,6 +100,14 @@ extern int PL_clip_poly_nz(int *dst, int *src, int len, int num);
 #define PL_VDIM      5 /* X Y Z U V */
 #define PL_POLY_VLEN 3 /* Idx U V */
 
+#ifdef PL_REDUCED_DEPTH_PRECISION
+#define ZBUF_TYPE int16_t
+#define ZBUF_SHIFT 16
+#else
+#define ZBUF_TYPE int
+#define ZBUF_SHIFT 0
+#endif
+
 extern int PL_fov; /* min valid value = 8 */
 extern struct PL_TEX *PL_cur_tex;
 extern int PL_raster_mode; /* PL_FLAT or PL_TEXTURED */
